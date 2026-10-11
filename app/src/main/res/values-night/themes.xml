@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Dark mode: a lighter red so buttons and links stay readable on dark surfaces. -->
+    <style name="Theme.FocusRed" parent="Theme.Material3.DayNight">
+        <item name="colorPrimary">#F87171</item>
+        <item name="colorOnPrimary">#450A0A</item>
+    </style>
+</resources>

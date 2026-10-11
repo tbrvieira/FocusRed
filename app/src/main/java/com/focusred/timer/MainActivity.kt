@@ -12,6 +12,7 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Process
 import android.provider.Settings
+import android.text.format.DateFormat
 import android.util.TypedValue
 import android.view.Gravity
 import android.view.View
@@ -24,8 +25,11 @@ import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
+import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.materialswitch.MaterialSwitch
+import java.util.Date
 import java.util.concurrent.Executors
 import kotlin.math.roundToInt
 
@@ -51,6 +55,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var scrollView: ScrollView
     private lateinit var dashboardTitle: TextView
     private lateinit var dashboard: LinearLayout
+    private lateinit var pauses: LinearLayout
     private val loader = Executors.newSingleThreadExecutor()
     private var scrollToDashboard = false
 
@@ -127,6 +132,8 @@ class MainActivity : AppCompatActivity() {
             setTypeface(typeface, Typeface.BOLD)
             setPadding(0, pad * 2, 0, 0)
         })
+        pauses = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        root.addView(card("Pause the timer", pauses))
         timerSettings().forEach { root.addView(it) }
 
         scrollView = ScrollView(this).apply { addView(root) }
@@ -138,6 +145,12 @@ class MainActivity : AppCompatActivity() {
         super.onResume()
         refreshStatus()
         loadDashboard()
+        renderPauses()
+    }
+
+    override fun onStop() {
+        super.onStop()
+        pauses.removeCallbacks(refreshPauses) // onResume re-renders and re-posts it.
     }
 
     override fun onDestroy() {
@@ -402,6 +415,81 @@ class MainActivity : AppCompatActivity() {
 
     // ---- Floating timer settings ----
 
+    /** Per-app Pause/Resume rows; rebuilt on resume so expired pauses disappear. */
+    private fun renderPauses() {
+        pauses.removeCallbacks(refreshPauses)
+        pauses.removeAllViews()
+        pauses.addView(hint("Turn the timer off for an app for a while, e.g. to watch something " +
+            "full screen. Its time still counts toward your stats and limits."))
+        val now = System.currentTimeMillis()
+        SocialApps.all.forEach { app ->
+            val until = FocusPrefs.pausedUntil(this, app.packageName)
+            val paused = until > now
+            val status = when {
+                !paused -> null
+                until == FocusPrefs.PAUSED_UNTIL_RESUMED -> "Paused until you resume"
+                else -> "Paused until " + DateFormat.getTimeFormat(this).format(Date(until))
+            }
+            val button = MaterialButton(
+                this, null, com.google.android.material.R.attr.materialButtonOutlinedStyle
+            ).apply {
+                text = if (paused) "Resume" else "Pause"
+                contentDescription = "${text} the timer for ${app.label}"
+                setOnClickListener {
+                    if (paused) {
+                        FocusPrefs.setPausedUntil(context, app.packageName, 0L)
+                        renderPauses()
+                    } else {
+                        choosePause(app)
+                    }
+                }
+            }
+            pauses.addView(row(
+                dot(app.color, 10),
+                vertical(
+                    TextView(this).apply {
+                        text = app.label
+                        textSize = 15f
+                        setTypeface(typeface, Typeface.BOLD)
+                    },
+                    status?.let { hint(it) }
+                ).apply {
+                    setPadding(dp(8), 0, 0, 0)
+                    layoutParams = weighted()
+                },
+                button
+            ).apply { setPadding(0, dp(8), 0, 0) })
+        }
+        // Update the list when the next pause runs out while this screen is open.
+        SocialApps.all.map { FocusPrefs.pausedUntil(this, it.packageName) }
+            .filter { it > now && it != FocusPrefs.PAUSED_UNTIL_RESUMED }
+            .minOrNull()
+            ?.let { pauses.postDelayed(refreshPauses, it - now + 500) }
+    }
+
+    private val refreshPauses = Runnable { renderPauses() }
+
+    private fun choosePause(app: SocialApp) {
+        val options = listOf(
+            "15 minutes" to 15, "30 minutes" to 30, "1 hour" to 60, "2 hours" to 120,
+            "Until I resume" to 0
+        )
+        MaterialAlertDialogBuilder(this)
+            .setTitle("Pause the timer for ${app.label}")
+            .setItems(options.map { it.first }.toTypedArray()) { _, which ->
+                val minutes = options[which].second
+                val until = if (minutes == 0) {
+                    FocusPrefs.PAUSED_UNTIL_RESUMED
+                } else {
+                    System.currentTimeMillis() + minutes * 60_000L
+                }
+                FocusPrefs.setPausedUntil(this, app.packageName, until)
+                renderPauses()
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
     private fun timerSettings(): List<View> {
         val minimizing = vertical(
             settingRow(
@@ -414,8 +502,12 @@ class MainActivity : AppCompatActivity() {
                 "No minimizing after a session of", FocusPrefs.noMinimizeAfterMinutes(this), 1..60,
                 { "$it min" }, down = { it - 1 }, up = { it + 1 }
             ) { FocusPrefs.setNoMinimizeAfterMinutes(this, it) },
-            hint("The session counts per app. Once an app's daily limit is reached, the timer " +
-                "always stays expanded and fully opaque.")
+            hint("A session is your time in one app (paused time included). It ends once " +
+                "you've been away from the app for ${OverlayService.SESSION_BREAK_MS / 60_000} " +
+                "minutes (time with the phone locked counts as away). After the " +
+                "no-minimizing time the timer can't be minimized or hidden for the rest of the " +
+                "session. Once an app's daily limit is reached, the timer always stays expanded " +
+                "and fully opaque.")
         )
 
         val gradualRows = vertical(

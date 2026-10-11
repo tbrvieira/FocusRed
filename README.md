@@ -17,6 +17,8 @@ This app runs a floating semi-transparent red timer over social media apps showi
 - The floating timer pulses by default; turn it off with "Pulse: Off" in the timer's controls panel (sliders icon).
 
 ## Floating timer rules (set in the app's "Floating timer" section)
-- The timer can be minimized to a pill (clock, session, today's total and limit bar), but only for a limited time (default 30 s) and only early in a session: after a session of 5 min (adjustable) in an app it can't be minimized for that app.
+- A session is the time spent in one app (paused time included). It ends once you've been away from the app for 5 minutes (time with the phone locked counts as away).
+- The timer can be minimized to a pill (clock, session, today's total and limit bar), but only for a limited time (default 30 s) and only early in a session: after a session of 5 min (adjustable) in an app it can't be minimized or hidden briefly for that app.
 - Gradual opacity (on by default): the background starts at 65% and rises 10% every 30 s of the session (all adjustable). When it's off, the opacity from the timer's controls panel is used.
-- Once an app's daily limit is reached, the timer stays expanded, fully opaque and visible: no minimizing, no hiding, no pulse.
+- Once an app's daily limit is reached, the timer stays expanded, fully opaque and visible: no minimizing, no hiding, no pulse, and the limit can only be changed in the app.
+- "Pause the timer" turns the timer off for one app for 15 min to 2 h or until resumed, e.g. for full-screen viewing. Usage still counts toward stats and limits.

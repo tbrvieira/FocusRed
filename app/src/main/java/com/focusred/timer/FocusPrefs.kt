@@ -109,6 +109,19 @@ object FocusPrefs {
     fun setGradualIntervalSeconds(context: Context, seconds: Int) =
         putInt(context, "gradual_interval", seconds.coerceIn(10, 300))
 
+    /**
+     * Until when the timer is paused for [packageName], as epoch millis: 0 means not
+     * paused and [PAUSED_UNTIL_RESUMED] means paused until the user resumes it.
+     */
+    fun pausedUntil(context: Context, packageName: String): Long =
+        prefs(context).getLong("paused_until_$packageName", 0L)
+
+    fun setPausedUntil(context: Context, packageName: String, until: Long) {
+        prefs(context).edit().putLong("paused_until_$packageName", until).apply()
+    }
+
+    const val PAUSED_UNTIL_RESUMED = Long.MAX_VALUE
+
     /** "45s", "1m", "1m 30s". */
     fun formatSeconds(seconds: Int): String = when {
         seconds < 60 -> "${seconds}s"

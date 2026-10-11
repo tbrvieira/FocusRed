@@ -1,12 +1,15 @@
 package com.focusred.timer
 
 import android.animation.ValueAnimator
+import android.app.KeyguardManager
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.res.Configuration
 import android.graphics.PixelFormat
 import android.graphics.Point
@@ -32,6 +35,7 @@ import android.widget.ProgressBar
 import android.widget.SeekBar
 import android.widget.TextView
 import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
 import androidx.core.text.bold
 import androidx.core.text.buildSpannedString
 import androidx.core.view.isVisible
@@ -53,6 +57,10 @@ class OverlayService : Service() {
         // The overlay fades from full to this alpha and back, once every 2 seconds.
         private const val PULSE_MIN_ALPHA = 0.55f
         private const val PULSE_HALF_PERIOD_MS = 1000L
+
+        // A session ends after this long away from its app.
+        const val SESSION_BREAK_MS = 5 * 60 * 1000L
+        private const val UNLOCK_SHOW_DELAY_MS = 800L
 
         private val OPACITY_CHIPS = mapOf(
             R.id.chip_opacity_40 to 40,
@@ -81,6 +89,30 @@ class OverlayService : Service() {
     private var pulseEnabled = true
     private var isMinimized = false
     private var minimizedSeconds = 0
+
+    private class SavedSession(val seconds: Int, val leftAt: Long)
+    // Each app's session time when it last left the screen.
+    private val sessions = HashMap<String, SavedSession>()
+    // The app in front while its timer is paused from the app settings, since when, and
+    // its session time at that moment.
+    private var pausedPackage: String? = null
+    private var pausedSince = 0L
+    private var pausedSessionSeconds = 0
+    private val pauseEndRunnable = Runnable { pausedPackage?.let { showFor(it) } }
+
+    // The social app that was in front when the screen turned off, shown again on unlock.
+    private var appBeforeScreenOff: String? = null
+    private lateinit var keyguardManager: KeyguardManager
+    private val screenReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            when (intent.action) {
+                Intent.ACTION_SCREEN_OFF -> onScreenOff()
+                Intent.ACTION_USER_PRESENT -> onUnlocked()
+                // Without a lock screen there's no USER_PRESENT.
+                Intent.ACTION_SCREEN_ON -> if (!keyguardManager.isKeyguardLocked) onUnlocked()
+            }
+        }
+    }
 
     // Set in the app's "Floating timer" card; reloaded each time the timer is shown.
     private var maxMinimizedSeconds = FocusPrefs.DEFAULT_MAX_MINIMIZED_SECONDS
@@ -124,6 +156,18 @@ class OverlayService : Service() {
         opacityPercent = FocusPrefs.overlayOpacity(this)
         pulseEnabled = FocusPrefs.pulseEnabled(this)
         loadTimerSettings()
+        keyguardManager = getSystemService(KeyguardManager::class.java)
+        // Exported because USER_PRESENT comes from SystemUI, which runs as an ordinary
+        // app; all three are protected broadcasts that other apps can't send.
+        ContextCompat.registerReceiver(
+            this, screenReceiver,
+            IntentFilter().apply {
+                addAction(Intent.ACTION_SCREEN_OFF)
+                addAction(Intent.ACTION_SCREEN_ON)
+                addAction(Intent.ACTION_USER_PRESENT)
+            },
+            ContextCompat.RECEIVER_EXPORTED
+        )
         startForegroundServiceNotification()
     }
 
@@ -142,30 +186,145 @@ class OverlayService : Service() {
 
         when (action) {
             "ACTION_SHOW_OVERLAY" -> {
-                if (currentPackageName != pkg) {
-                    currentPackageName = pkg
-                    sessionSeconds = 0
-                }
-                todayCumulativeSeconds = try {
-                    UsageStatsHelper.getTodayUsageForPackage(this, pkg)
-                } catch (e: Exception) {
-                    0 // Usage access not granted yet
-                }
-                limitMinutes = FocusPrefs.limitMinutes(this, pkg)
-                loadTimerSettings()
-                showOverlay()
-                overlayView?.findViewById<TextView>(R.id.tv_app_name)?.text =
-                    SocialApps.label(pkg).uppercase(Locale.ROOT)
-                updateTimerDisplay()
+                forgetScreenOffApp()
+                showFor(pkg)
             }
             "ACTION_HIDE_OVERLAY" -> {
-                hideOverlay()
+                forgetScreenOffApp()
+                leaveApp()
             }
             "ACTION_TEMPORARY_HIDE" -> {
                 snoozeOverlay(30) // Hide for 30s as requested
             }
         }
         return START_STICKY
+    }
+
+    /** [pkg] is in front: show its timer, unless the timer is paused for it in the app. */
+    private fun showFor(pkg: String) {
+        handler.removeCallbacks(pauseEndRunnable)
+        // Switching straight from a paused app to another one: keep the paused app's time.
+        if (pausedPackage != null && pausedPackage != pkg) {
+            rememberPausedSession()
+            pausedPackage = null
+        }
+        val pausedUntil = FocusPrefs.pausedUntil(this, pkg)
+        val now = System.currentTimeMillis()
+        if (pausedUntil > now) {
+            if (pausedPackage != pkg) {
+                if (overlayView != null) rememberSession()
+                hideOverlay()
+                pausedPackage = pkg
+                pausedSince = now
+                pausedSessionSeconds = resumableSession(pkg, now)?.seconds ?: 0
+            }
+            // Bring the timer back if the pause ends while the app is still in front.
+            // (After the phone sleeps, onUnlocked() checks again by the wall clock.)
+            if (pausedUntil != FocusPrefs.PAUSED_UNTIL_RESUMED) {
+                handler.postDelayed(pauseEndRunnable, pausedUntil - now)
+            }
+            return
+        }
+        // A pause that ended with the app still in front: that time was spent in the app.
+        if (pausedPackage == pkg) rememberPausedSession()
+        pausedPackage = null
+        enterApp(pkg)
+        todayCumulativeSeconds = try {
+            UsageStatsHelper.getTodayUsageForPackage(this, pkg)
+        } catch (e: Exception) {
+            0 // Usage access not granted yet
+        }
+        limitMinutes = FocusPrefs.limitMinutes(this, pkg)
+        loadTimerSettings()
+        showOverlay()
+        overlayView?.findViewById<TextView>(R.id.tv_app_name)?.text =
+            SocialApps.label(pkg).uppercase(Locale.ROOT)
+        updateTimerDisplay()
+    }
+
+    /**
+     * Starts or resumes [pkg]'s session. A session belongs to one app and survives
+     * brief trips elsewhere (other apps included); it ends after [SESSION_BREAK_MS]
+     * away from the app. One left before midnight doesn't resume after it.
+     */
+    private fun enterApp(pkg: String) {
+        if (pkg == currentPackageName && overlayView != null) return // Already showing it.
+        if (pkg != currentPackageName && overlayView != null) rememberSession()
+        val resumed = resumableSession(pkg, System.currentTimeMillis())
+        if (pkg != currentPackageName || resumed == null) {
+            isMinimized = false
+            minimizedSeconds = 0
+            // A direct switch from another app keeps the view; show the card again.
+            overlayView?.let { applyMinimized(it) }
+        }
+        currentPackageName = pkg
+        sessionSeconds = resumed?.seconds ?: 0
+    }
+
+    /** [pkg]'s saved session if it left less than [SESSION_BREAK_MS] ago today, else null. */
+    private fun resumableSession(pkg: String, now: Long): SavedSession? =
+        sessions[pkg]?.takeIf {
+            now - it.leftAt < SESSION_BREAK_MS &&
+                UsageStatsHelper.startOfDay(it.leftAt) == UsageStatsHelper.startOfDay(now)
+        }
+
+    /** Remembers the current app's session time as it leaves the screen. */
+    private fun rememberSession() {
+        if (currentPackageName.isEmpty()) return
+        sessions[currentPackageName] = SavedSession(sessionSeconds, System.currentTimeMillis())
+    }
+
+    /** Time in an app while its timer was paused still counts toward its session. */
+    private fun rememberPausedSession() {
+        val pkg = pausedPackage ?: return
+        val now = System.currentTimeMillis()
+        sessions[pkg] = SavedSession(pausedSessionSeconds + ((now - pausedSince) / 1000).toInt(), now)
+    }
+
+    /** The social app left the screen: another app, the home screen, or the phone was locked. */
+    private fun leaveApp() {
+        handler.removeCallbacks(pauseEndRunnable)
+        if (pausedPackage != null) {
+            rememberPausedSession()
+        } else if (overlayView != null) {
+            rememberSession()
+        }
+        pausedPackage = null
+        hideOverlay()
+    }
+
+    /** Locking the phone counts as leaving the app, so the session's break starts now. */
+    private fun onScreenOff() {
+        handler.removeCallbacks(unlockRunnable)
+        val pkg = pausedPackage ?: currentPackageName.takeIf { overlayView != null } ?: return
+        Log.d(TAG, "Screen off in $pkg")
+        appBeforeScreenOff = pkg
+        leaveApp()
+    }
+
+    /**
+     * Back from the lock screen into the same app: the accessibility service sends
+     * nothing (it ignores the lock screen), so show the timer again here. showFor()
+     * also re-checks a pause by the wall clock, which kept running while the phone slept.
+     * It waits a moment, so that unlocking through a notification into another app (whose
+     * accessibility event cancels this) doesn't flash the previous app's timer.
+     */
+    private fun onUnlocked() {
+        if (appBeforeScreenOff == null) return
+        handler.removeCallbacks(unlockRunnable)
+        handler.postDelayed(unlockRunnable, UNLOCK_SHOW_DELAY_MS)
+    }
+
+    private val unlockRunnable = Runnable {
+        val pkg = appBeforeScreenOff ?: return@Runnable
+        appBeforeScreenOff = null
+        Log.d(TAG, "Unlocked into $pkg")
+        showFor(pkg)
+    }
+
+    private fun forgetScreenOffApp() {
+        appBeforeScreenOff = null
+        handler.removeCallbacks(unlockRunnable)
     }
 
     private fun showOverlay() {
@@ -400,6 +559,7 @@ class OverlayService : Service() {
     }
 
     private fun setLimit(minutes: Int) {
+        if (isOverLimit()) return // Over the limit it can only be changed in the app.
         limitMinutes = minutes
         FocusPrefs.setLimitMinutes(this, currentPackageName, minutes)
         updateTimerDisplay()
@@ -415,7 +575,7 @@ class OverlayService : Service() {
 
     private fun isOverLimit() = limitMinutes > 0 && todayCumulativeSeconds >= limitMinutes * 60
 
-    /** Minimizing is only allowed early in a session and never once the daily limit is reached. */
+    /** Minimizing or hiding briefly is only allowed early in a session and never over the limit. */
     private fun canMinimize() = !isOverLimit() && sessionSeconds < noMinimizeAfterSeconds
 
     /** Background opacity right now, in percent. */
@@ -433,18 +593,20 @@ class OverlayService : Service() {
         view.findViewById<View>(R.id.card).background.mutate().alpha = alpha
         view.findViewById<View>(R.id.pill).background.mutate().alpha = alpha
         view.findViewById<TextView>(R.id.tv_opacity).text = when {
-            isOverLimit() -> "Opacity: 100% · limit reached"
-            gradualOpacity -> "Opacity: $percent% · rising"
+            isOverLimit() -> "Opacity: 100% while over the daily limit"
+            gradualOpacity -> "Opacity: $percent%, rising with the session (set in the FocusRed app)"
             else -> "Opacity: $percent%"
         }
+        // The manual controls only apply when nothing else decides the opacity.
         val manual = !gradualOpacity && !isOverLimit()
-        val seek = view.findViewById<SeekBar>(R.id.seek_opacity)
-        seek.progress = percent - FocusPrefs.MIN_OPACITY
-        seek.setUsable(manual)
+        view.findViewById<SeekBar>(R.id.seek_opacity).apply {
+            isVisible = manual
+            progress = percent - FocusPrefs.MIN_OPACITY
+        }
         OPACITY_CHIPS.forEach { (id, chipPercent) ->
             view.findViewById<View>(id).apply {
-                isSelected = manual && chipPercent == percent
-                setUsable(manual)
+                isVisible = manual
+                isSelected = chipPercent == percent
             }
         }
     }
@@ -511,14 +673,19 @@ class OverlayService : Service() {
         if (isMinimized && (!canMinimize() || minimizedSeconds >= maxMinimizedSeconds)) {
             setMinimized(false)
         }
-        view.findViewById<View>(R.id.btn_minimize).setUsable(canMinimize())
-
-        if (overLimit && view.visibility != View.VISIBLE) {
+        // Hiding briefly follows the same rules as minimizing: not after the session cutoff
+        // or over the limit, and a hidden timer comes back as soon as either is reached.
+        val canHide = canMinimize()
+        listOf(R.id.btn_minimize, R.id.btn_snooze).forEach { view.findViewById<View>(it).setUsable(canHide) }
+        HIDE_CHIPS.keys.forEach { view.findViewById<View>(it).setUsable(canHide) }
+        if (!canHide && view.visibility != View.VISIBLE) {
             handler.removeCallbacks(unsnoozeRunnable)
             unsnoozeRunnable.run()
         }
-        view.findViewById<View>(R.id.btn_snooze).setUsable(!overLimit)
-        HIDE_CHIPS.keys.forEach { view.findViewById<View>(it).setUsable(!overLimit) }
+        // Over the limit nothing on the timer may undo the lock: no raising or removing
+        // the limit from here (the app's dashboard still can), and no pulse.
+        listOf(R.id.btn_limit_minus, R.id.btn_limit_plus, R.id.chip_pulse_on, R.id.chip_pulse_off)
+            .forEach { view.findViewById<View>(it).setUsable(!overLimit) }
 
         updatePulse()
         applyOpacity(view)
@@ -538,7 +705,7 @@ class OverlayService : Service() {
     }
 
     private fun snoozeOverlay(seconds: Int) {
-        if (isOverLimit()) return // Over the limit the timer can't be hidden.
+        if (!canMinimize()) return // Same rules as minimizing (session cutoff, limit).
         overlayView?.visibility = View.GONE
         pulseAnimator?.pause()
         handler.removeCallbacks(unsnoozeRunnable)
@@ -630,6 +797,8 @@ class OverlayService : Service() {
 
     override fun onDestroy() {
         super.onDestroy()
+        unregisterReceiver(screenReceiver)
+        handler.removeCallbacksAndMessages(null)
         hideOverlay()
     }
 }
