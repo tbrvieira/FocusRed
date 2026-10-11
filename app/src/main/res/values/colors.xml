@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="ic_launcher_background">#B91C1C</color>
+    <!-- Floating timer: times and daily-limit progress -->
+    <color name="overlay_yellow">#FFFACC15</color>
+</resources>

@@ -1,0 +1,18 @@
+# Gradle and build output
+.gradle/
+.kotlin/
+build/
+
+# Machine-specific (Android SDK path) — must not be committed
+local.properties
+
+# Android Studio
+.idea/
+*.iml
+captures/
+.externalNativeBuild/
+.cxx/
+
+# OS files
+.DS_Store
+Thumbs.db

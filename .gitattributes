@@ -1,0 +1,4 @@
+# gradlew is a shell script: it must keep LF line endings to run on macOS/Linux/CI.
+gradlew text eol=lf
+*.bat text eol=crlf
+*.jar binary

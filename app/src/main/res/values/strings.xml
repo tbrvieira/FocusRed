@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">FocusRed</string>
+    <string name="accessibility_service_description">FocusRed detects when a social media app is opened so it can show the floating red timer. It does not read screen content.</string>
+</resources>

@@ -1,0 +1,400 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Strong Red Semi-Transparent Floating Timer Layout for Galaxy S21 Ultra.
+     The whole overlay pulses (OverlayService animates its alpha). -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content">
+
+    <LinearLayout
+        android:id="@+id/card"
+        android:layout_width="300dp"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:background="@drawable/bg_floating_timer_red"
+        android:paddingHorizontal="12dp"
+        android:paddingVertical="8dp">
+
+        <!-- Header: drag handle, app name, over-limit badge and actions -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <ImageView
+                android:layout_width="14dp"
+                android:layout_height="14dp"
+                android:src="@drawable/ic_drag"
+                android:importantForAccessibility="no" />
+
+            <TextView
+                android:id="@+id/tv_app_name"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:maxLines="1"
+                android:text="SOCIAL"
+                android:textColor="#FFFFFFFF"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tv_over_limit"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:background="@drawable/bg_badge_over_limit"
+                android:drawableStart="@drawable/ic_warning"
+                android:drawablePadding="3dp"
+                android:gravity="center_vertical"
+                android:paddingHorizontal="5dp"
+                android:paddingVertical="1dp"
+                android:text="Over Limit"
+                android:textColor="#FFFCD34D"
+                android:textSize="9sp"
+                android:textStyle="bold"
+                android:visibility="gone" />
+
+            <Space
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:layout_weight="1" />
+
+            <ImageView
+                android:id="@+id/btn_snooze"
+                style="@style/OverlayIconButton"
+                android:src="@drawable/ic_eye_off"
+                android:contentDescription="Hide 30s" />
+
+            <ImageView
+                android:id="@+id/btn_minimize"
+                style="@style/OverlayIconButton"
+                android:src="@drawable/ic_minimize"
+                android:contentDescription="Minimize timer" />
+
+            <ImageView
+                android:id="@+id/btn_settings"
+                style="@style/OverlayIconButton"
+                android:src="@drawable/ic_tune"
+                android:contentDescription="Floating timer controls" />
+
+            <ImageView
+                android:id="@+id/btn_dashboard"
+                style="@style/OverlayIconButton"
+                android:src="@drawable/ic_dashboard"
+                android:contentDescription="Open dashboard" />
+        </LinearLayout>
+
+        <View
+            style="@style/OverlayDivider"
+            android:layout_marginTop="8dp" />
+
+        <!-- Dual timer metrics: Session & Cumulative -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:orientation="horizontal">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:gravity="center">
+                <TextView
+                    style="@style/OverlayLabel"
+                    android:drawableStart="@drawable/ic_schedule"
+                    android:drawablePadding="4dp"
+                    android:gravity="center_vertical"
+                    android:text="Clock" />
+                <TextView
+                    android:id="@+id/tv_clock_time"
+                    style="@style/OverlayMetric"
+                    android:text="00:00" />
+            </LinearLayout>
+
+            <View
+                android:layout_width="1dp"
+                android:layout_height="match_parent"
+                android:background="#33FFFFFF" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:gravity="center">
+                <TextView
+                    style="@style/OverlayLabel"
+                    android:drawableStart="@drawable/ic_stopwatch"
+                    android:drawablePadding="4dp"
+                    android:gravity="center_vertical"
+                    android:text="Session" />
+                <TextView
+                    android:id="@+id/tv_session_time"
+                    style="@style/OverlayMetric"
+                    android:text="00:00" />
+            </LinearLayout>
+
+            <View
+                android:layout_width="1dp"
+                android:layout_height="match_parent"
+                android:background="#33FFFFFF" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:gravity="center">
+                <TextView
+                    style="@style/OverlayLabel"
+                    android:drawableStart="@drawable/ic_calendar"
+                    android:drawablePadding="4dp"
+                    android:gravity="center_vertical"
+                    android:text="Today" />
+                <TextView
+                    android:id="@+id/tv_today_time"
+                    style="@style/OverlayMetric"
+                    android:text="0m" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- Daily limit progress (hidden when the app has no limit) -->
+        <LinearLayout
+            android:id="@+id/limit_section"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <View
+                style="@style/OverlayDivider"
+                android:layout_marginTop="6dp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:orientation="horizontal">
+                <TextView
+                    android:id="@+id/tv_limit"
+                    style="@style/OverlayLabel"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:text="Limit: 60m"
+                    android:textSize="10sp" />
+                <TextView
+                    android:id="@+id/tv_limit_percent"
+                    style="@style/OverlayValue"
+                    android:text="0%"
+                    android:textSize="10sp" />
+            </LinearLayout>
+
+            <ProgressBar
+                android:id="@+id/limit_progress"
+                style="?android:attr/progressBarStyleHorizontal"
+                android:layout_width="match_parent"
+                android:layout_height="6dp"
+                android:layout_marginTop="4dp"
+                android:layout_marginBottom="2dp"
+                android:minHeight="6dp"
+                android:maxHeight="6dp"
+                android:max="100"
+                android:progressDrawable="@drawable/progress_limit_yellow" />
+        </LinearLayout>
+
+        <!-- Controls panel, toggled by the sliders button -->
+        <LinearLayout
+            android:id="@+id/settings_panel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <View
+                style="@style/OverlayDivider"
+                android:layout_marginTop="8dp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+                <TextView
+                    android:id="@+id/tv_opacity"
+                    style="@style/OverlayLabel"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:text="Opacity: 75%" />
+                <TextView android:id="@+id/chip_opacity_40" style="@style/OverlayChip" android:text="40%" />
+                <TextView android:id="@+id/chip_opacity_60" style="@style/OverlayChip" android:text="60%" />
+                <TextView android:id="@+id/chip_opacity_75" style="@style/OverlayChip" android:text="75%" />
+                <TextView android:id="@+id/chip_opacity_95" style="@style/OverlayChip" android:text="95%" />
+            </LinearLayout>
+
+            <SeekBar
+                android:id="@+id/seek_opacity"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:max="80"
+                android:progressBackgroundTint="#66FFFFFF"
+                android:progressTint="#FFFFFFFF"
+                android:thumbTint="#FFFFFFFF" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+                <TextView
+                    style="@style/OverlayLabel"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:text="Pulse:" />
+                <TextView android:id="@+id/chip_pulse_on" style="@style/OverlayChip" android:text="On" />
+                <TextView android:id="@+id/chip_pulse_off" style="@style/OverlayChip" android:text="Off" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+                <TextView
+                    style="@style/OverlayLabel"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:text="Daily limit:" />
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_overlay_stepper"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+                    <TextView
+                        android:id="@+id/btn_limit_minus"
+                        android:layout_width="32dp"
+                        android:layout_height="28dp"
+                        android:background="@drawable/bg_overlay_icon_button"
+                        android:contentDescription="Decrease daily limit"
+                        android:gravity="center"
+                        android:text="−"
+                        android:textColor="#FFFFE4E6"
+                        android:textSize="16sp" />
+                    <TextView
+                        android:id="@+id/tv_limit_value"
+                        style="@style/OverlayValue"
+                        android:gravity="center"
+                        android:minWidth="52dp"
+                        android:text="60m"
+                        android:textSize="12sp" />
+                    <TextView
+                        android:id="@+id/btn_limit_plus"
+                        android:layout_width="32dp"
+                        android:layout_height="28dp"
+                        android:background="@drawable/bg_overlay_icon_button"
+                        android:contentDescription="Increase daily limit"
+                        android:gravity="center"
+                        android:text="+"
+                        android:textColor="#FFFFE4E6"
+                        android:textSize="16sp" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+                <TextView
+                    style="@style/OverlayLabel"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:text="Hide briefly:" />
+                <TextView android:id="@+id/chip_hide_15" style="@style/OverlayChip" android:text="15s" />
+                <TextView android:id="@+id/chip_hide_30" style="@style/OverlayChip" android:text="30s" />
+                <TextView android:id="@+id/chip_hide_60" style="@style/OverlayChip" android:text="60s" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/btn_open_dashboard"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:layout_marginBottom="2dp"
+                android:background="@drawable/bg_overlay_button"
+                android:gravity="center"
+                android:paddingVertical="8dp"
+                android:text="Open In-App Dashboard"
+                android:textColor="#FFFFFFFF"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Minimized: clock, session and today's total, with the daily-limit bar below -->
+    <LinearLayout
+        android:id="@+id/pill"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="@drawable/bg_floating_pill"
+        android:orientation="vertical"
+        android:paddingHorizontal="12dp"
+        android:paddingVertical="6dp"
+        android:visibility="gone">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/tv_pill_clock"
+                style="@style/OverlayPillValue"
+                android:drawableStart="@drawable/ic_schedule"
+                android:text="00:00" />
+
+            <View style="@style/OverlayPillDivider" />
+
+            <TextView
+                android:id="@+id/tv_pill_time"
+                style="@style/OverlayPillValue"
+                android:drawableStart="@drawable/ic_stopwatch"
+                android:text="00:00" />
+
+            <View style="@style/OverlayPillDivider" />
+
+            <TextView
+                android:id="@+id/tv_pill_today"
+                style="@style/OverlayPillValue"
+                android:drawableStart="@drawable/ic_calendar"
+                android:text="0m" />
+
+            <ImageView
+                android:id="@+id/btn_expand"
+                style="@style/OverlayIconButton"
+                android:layout_marginStart="4dp"
+                android:src="@drawable/ic_expand"
+                android:contentDescription="Expand timer" />
+        </LinearLayout>
+
+        <ProgressBar
+            android:id="@+id/pill_limit_progress"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="match_parent"
+            android:layout_height="3dp"
+            android:layout_marginTop="3dp"
+            android:layout_marginBottom="1dp"
+            android:minHeight="3dp"
+            android:maxHeight="3dp"
+            android:max="100"
+            android:progressDrawable="@drawable/progress_limit_yellow" />
+    </LinearLayout>
+</FrameLayout>

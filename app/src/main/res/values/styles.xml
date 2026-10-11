@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Floating timer widgets (layout_floating_timer.xml) -->
+
+    <style name="OverlayLabel">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:textColor">#FFFFE4E6</item>
+        <item name="android:textSize">11sp</item>
+    </style>
+
+    <style name="OverlayValue">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:textColor">#FFFFFFFF</item>
+        <item name="android:fontFamily">monospace</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <!-- Clock / Session / Today values. Autosize shrinks long values (e.g. a
+         10-hour session or a large system font) instead of clipping them. -->
+    <style name="OverlayMetric" parent="OverlayValue">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">28dp</item>
+        <item name="android:gravity">center</item>
+        <item name="android:maxLines">1</item>
+        <item name="android:textColor">@color/overlay_yellow</item>
+        <item name="android:autoSizeTextType">uniform</item>
+        <item name="android:autoSizeMinTextSize">11sp</item>
+        <item name="android:autoSizeMaxTextSize">20sp</item>
+        <item name="android:autoSizeStepGranularity">1sp</item>
+    </style>
+
+    <!-- Values in the minimized pill -->
+    <style name="OverlayPillValue" parent="OverlayValue">
+        <item name="android:drawablePadding">3dp</item>
+        <item name="android:gravity">center_vertical</item>
+        <item name="android:maxLines">1</item>
+        <item name="android:textColor">@color/overlay_yellow</item>
+        <item name="android:textSize">13sp</item>
+    </style>
+
+    <style name="OverlayPillDivider">
+        <item name="android:layout_width">1dp</item>
+        <item name="android:layout_height">12dp</item>
+        <item name="android:layout_marginHorizontal">7dp</item>
+        <item name="android:background">#66FFFFFF</item>
+    </style>
+
+    <style name="OverlayDivider">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">1dp</item>
+        <item name="android:background">#33FFFFFF</item>
+    </style>
+
+    <style name="OverlayIconButton">
+        <item name="android:layout_width">24dp</item>
+        <item name="android:layout_height">24dp</item>
+        <item name="android:layout_marginStart">2dp</item>
+        <item name="android:padding">4dp</item>
+        <item name="android:background">@drawable/bg_overlay_icon_button</item>
+    </style>
+
+    <style name="OverlayChip">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginStart">4dp</item>
+        <item name="android:paddingHorizontal">7dp</item>
+        <item name="android:paddingVertical">4dp</item>
+        <item name="android:background">@drawable/bg_overlay_chip</item>
+        <item name="android:textColor">@color/overlay_chip_text</item>
+        <item name="android:textSize">10sp</item>
+        <item name="android:fontFamily">monospace</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+</resources>
