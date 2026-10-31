@@ -81,6 +81,17 @@ object FocusPrefs {
     fun setNoMinimizeAfterMinutes(context: Context, minutes: Int) =
         putInt(context, "no_minimize_after_minutes", minutes.coerceIn(1, 60))
 
+    /**
+     * Whether the timer can always be minimized (also after the session cutoff and over the
+     * daily limit) and then stays minimized until expanded. Hiding keeps the strict rules.
+     */
+    fun alwaysAllowMinimize(context: Context): Boolean =
+        prefs(context).getBoolean("always_allow_minimize", false)
+
+    fun setAlwaysAllowMinimize(context: Context, enabled: Boolean) {
+        prefs(context).edit().putBoolean("always_allow_minimize", enabled).apply()
+    }
+
     /** Whether the timer's opacity rises with the session time instead of using [overlayOpacity]. */
     fun gradualOpacityEnabled(context: Context): Boolean =
         prefs(context).getBoolean("gradual_opacity", true)

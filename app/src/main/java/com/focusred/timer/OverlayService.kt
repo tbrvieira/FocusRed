@@ -117,6 +117,7 @@ class OverlayService : Service() {
     // Set in the app's "Floating timer" card; reloaded each time the timer is shown.
     private var maxMinimizedSeconds = FocusPrefs.DEFAULT_MAX_MINIMIZED_SECONDS
     private var noMinimizeAfterSeconds = FocusPrefs.DEFAULT_NO_MINIMIZE_AFTER_MINUTES * 60
+    private var alwaysAllowMinimize = false
     private var gradualOpacity = true
     private var gradualStart = FocusPrefs.DEFAULT_GRADUAL_START
     private var gradualStep = FocusPrefs.DEFAULT_GRADUAL_STEP
@@ -173,6 +174,7 @@ class OverlayService : Service() {
 
     private fun loadTimerSettings() {
         maxMinimizedSeconds = FocusPrefs.maxMinimizedSeconds(this)
+        alwaysAllowMinimize = FocusPrefs.alwaysAllowMinimize(this)
         noMinimizeAfterSeconds = FocusPrefs.noMinimizeAfterMinutes(this) * 60
         gradualOpacity = FocusPrefs.gradualOpacityEnabled(this)
         gradualStart = FocusPrefs.gradualStartPercent(this)
@@ -575,8 +577,11 @@ class OverlayService : Service() {
 
     private fun isOverLimit() = limitMinutes > 0 && todayCumulativeSeconds >= limitMinutes * 60
 
-    /** Minimizing or hiding briefly is only allowed early in a session and never over the limit. */
-    private fun canMinimize() = !isOverLimit() && sessionSeconds < noMinimizeAfterSeconds
+    /** Hiding briefly is only allowed early in a session and never over the limit. */
+    private fun canHide() = !isOverLimit() && sessionSeconds < noMinimizeAfterSeconds
+
+    /** Minimizing follows the same rule, unless "Always allow minimizing" is on. */
+    private fun canMinimize() = alwaysAllowMinimize || canHide()
 
     /** Background opacity right now, in percent. */
     private fun currentOpacity(): Int = when {
@@ -665,18 +670,21 @@ class OverlayService : Service() {
 
     /**
      * Enforces the timer rules every second: it may stay minimized only for
-     * [maxMinimizedSeconds] and only early in a session; once the daily limit is
-     * reached it stays expanded, visible and fully opaque.
+     * [maxMinimizedSeconds] and only early in a session (unless "Always allow
+     * minimizing" is on); once the daily limit is reached it stays visible and fully
+     * opaque, and expanded unless that option is on.
      */
     private fun applyRules(view: View) {
         val overLimit = isOverLimit()
-        if (isMinimized && (!canMinimize() || minimizedSeconds >= maxMinimizedSeconds)) {
+        val minimizedTooLong = !alwaysAllowMinimize && minimizedSeconds >= maxMinimizedSeconds
+        if (isMinimized && (!canMinimize() || minimizedTooLong)) {
             setMinimized(false)
         }
-        // Hiding briefly follows the same rules as minimizing: not after the session cutoff
-        // or over the limit, and a hidden timer comes back as soon as either is reached.
-        val canHide = canMinimize()
-        listOf(R.id.btn_minimize, R.id.btn_snooze).forEach { view.findViewById<View>(it).setUsable(canHide) }
+        view.findViewById<View>(R.id.btn_minimize).setUsable(canMinimize())
+        // Hiding briefly: not after the session cutoff or over the limit, and a hidden
+        // timer comes back as soon as either is reached.
+        val canHide = canHide()
+        view.findViewById<View>(R.id.btn_snooze).setUsable(canHide)
         HIDE_CHIPS.keys.forEach { view.findViewById<View>(it).setUsable(canHide) }
         if (!canHide && view.visibility != View.VISIBLE) {
             handler.removeCallbacks(unsnoozeRunnable)
@@ -705,7 +713,7 @@ class OverlayService : Service() {
     }
 
     private fun snoozeOverlay(seconds: Int) {
-        if (!canMinimize()) return // Same rules as minimizing (session cutoff, limit).
+        if (!canHide()) return // Not after the session cutoff or over the limit.
         overlayView?.visibility = View.GONE
         pulseAnimator?.pause()
         handler.removeCallbacks(unsnoozeRunnable)

@@ -491,13 +491,29 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun timerSettings(): List<View> {
+        val maxMinimizedRow = settingRow(
+            "Stay minimized for at most", FocusPrefs.maxMinimizedSeconds(this), 5..300,
+            FocusPrefs::formatSeconds,
+            down = { if (it <= 60) it - 5 else it - 15 },
+            up = { if (it < 60) it + 5 else it + 15 }
+        ) { FocusPrefs.setMaxMinimizedSeconds(this, it) }
+        fun showMaxMinimized(applies: Boolean) {
+            maxMinimizedRow.alpha = if (applies) 1f else 0.4f
+            setEnabledDeep(maxMinimizedRow, applies)
+        }
+        val alwaysMinimizeSwitch = MaterialSwitch(this).apply {
+            text = "Always allow minimizing"
+            textSize = 15f
+            isChecked = FocusPrefs.alwaysAllowMinimize(context)
+            setOnCheckedChangeListener { _, checked ->
+                FocusPrefs.setAlwaysAllowMinimize(context, checked)
+                showMaxMinimized(!checked)
+            }
+        }
+        showMaxMinimized(!alwaysMinimizeSwitch.isChecked)
+
         val minimizing = vertical(
-            settingRow(
-                "Stay minimized for at most", FocusPrefs.maxMinimizedSeconds(this), 5..300,
-                FocusPrefs::formatSeconds,
-                down = { if (it <= 60) it - 5 else it - 15 },
-                up = { if (it < 60) it + 5 else it + 15 }
-            ) { FocusPrefs.setMaxMinimizedSeconds(this, it) },
+            maxMinimizedRow,
             settingRow(
                 "No minimizing after a session of", FocusPrefs.noMinimizeAfterMinutes(this), 1..60,
                 { "$it min" }, down = { it - 1 }, up = { it + 1 }
@@ -507,7 +523,11 @@ class MainActivity : AppCompatActivity() {
                 "minutes (time with the phone locked counts as away). After the " +
                 "no-minimizing time the timer can't be minimized or hidden for the rest of the " +
                 "session. Once an app's daily limit is reached, the timer always stays expanded " +
-                "and fully opaque.")
+                "and fully opaque."),
+            alwaysMinimizeSwitch.apply { setPadding(0, dp(12), 0, 0) },
+            hint("When on, you can minimize the timer at any time, even after the " +
+                "no-minimizing time or over the daily limit, and it stays minimized until you " +
+                "expand it. Hiding briefly still follows the rules above.")
         )
 
         val gradualRows = vertical(
