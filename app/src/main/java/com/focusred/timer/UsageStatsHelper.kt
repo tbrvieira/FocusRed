@@ -86,7 +86,8 @@ object UsageStatsHelper {
     }
 
     /**
-     * Rebuilds foreground sessions for [packages] between [start] and [end]
+     * Rebuilds foreground sessions for [packages] (main packages; time in a variant
+     * such as TikTok Lite is reported under its main package) between [start] and [end]
      * from ACTIVITY_RESUMED / ACTIVITY_PAUSED / ACTIVITY_STOPPED events.
      * Returns the sessions clipped to the range, plus the timestamp of the
      * earliest event Android still had (how far back its history goes).
@@ -113,7 +114,7 @@ object UsageStatsHelper {
             val since = openSince.remove(pkg) ?: return
             val from = maxOf(since, start)
             val to = minOf(at, end)
-            if (to > from) sessions.add(Session(pkg, from, to))
+            if (to > from) sessions.add(Session(SocialApps.canonical(pkg) ?: pkg, from, to))
         }
 
         while (events.hasNextEvent()) {
@@ -121,7 +122,7 @@ object UsageStatsHelper {
             if (firstEvent == null) firstEvent = event.timeStamp
             val pkg = event.packageName ?: continue
             when (event.eventType) {
-                UsageEvents.Event.ACTIVITY_RESUMED -> if (pkg in packages) {
+                UsageEvents.Event.ACTIVITY_RESUMED -> if ((SocialApps.canonical(pkg) ?: pkg) in packages) {
                     resumedActivities.getOrPut(pkg) { HashSet() }.add(event.className.orEmpty())
                     openSince.putIfAbsent(pkg, event.timeStamp)
                 }

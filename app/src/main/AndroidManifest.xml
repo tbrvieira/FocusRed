@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- Permissions required for Floating Timer & Usage Tracking on Galaxy S21 Ultra -->
+    <!-- Permissions required for Floating Timer & Usage Tracking -->
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
@@ -21,6 +21,12 @@
         <package android:name="com.reddit.frontpage" />
         <package android:name="com.facebook.katana" />
         <package android:name="com.instagram.barcelona" />
+        <!-- Regional and Lite variants, counted as the main app -->
+        <package android:name="com.instagram.lite" />
+        <package android:name="com.ss.android.ugc.trill" />
+        <package android:name="com.zhiliaoapp.musically.go" />
+        <package android:name="com.ss.android.ugc.tiktok.lite" />
+        <package android:name="com.facebook.lite" />
     </queries>
 
     <application

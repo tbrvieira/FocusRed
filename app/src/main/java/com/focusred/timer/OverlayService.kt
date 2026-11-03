@@ -44,7 +44,7 @@ import kotlin.math.hypot
 import kotlin.math.roundToInt
 
 /**
- * FocusRed Floating Overlay Service for Galaxy S21 Ultra
+ * FocusRed Floating Overlay Service
  * Displays a pulsing semi-transparent red floating timer showing the
  * clock, real-time session duration, today's cumulative usage and
  * progress toward the app's daily limit.
