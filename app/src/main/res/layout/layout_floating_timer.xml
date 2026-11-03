@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Strong Red Semi-Transparent Floating Timer Layout for Galaxy S21 Ultra.
+<!-- Strong Red Semi-Transparent Floating Timer Layout.
      The whole overlay pulses (OverlayService animates its alpha). -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="wrap_content"

@@ -18,7 +18,8 @@ class AppAccessibilityService : AccessibilityService() {
         private const val TAG = "FocusRed"
     }
 
-    private val monitoredPackages = SocialApps.packages
+    // Variants (e.g. TikTok Lite) included; the overlay is told the main package.
+    private val monitoredPackages = SocialApps.allPackages
 
     private val ignoredPackages = setOf(
         "com.android.systemui",
@@ -67,7 +68,7 @@ class AppAccessibilityService : AccessibilityService() {
                     // Launch Overlay Service
                     val intent = Intent(this, OverlayService::class.java).apply {
                         action = "ACTION_SHOW_OVERLAY"
-                        putExtra("PACKAGE_NAME", packageName)
+                        putExtra("PACKAGE_NAME", SocialApps.canonical(packageName))
                     }
                     startService(intent)
                 } else {
