@@ -10,6 +10,7 @@ import android.graphics.drawable.GradientDrawable
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.PowerManager
 import android.os.Process
 import android.provider.Settings
 import android.text.format.DateFormat
@@ -99,6 +100,10 @@ class MainActivity : AppCompatActivity() {
                 requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 1)
             })
         }
+        val batteryStep = if (Build.VERSION.SDK_INT >= 33) 5 else 4
+        root.addView(button("$batteryStep. Turn off battery optimization") {
+            requestBatteryExemption()
+        })
         root.addView(button("If accessibility is greyed out: open App info") {
             startActivity(
                 Intent(
@@ -113,7 +118,12 @@ class MainActivity : AppCompatActivity() {
             setPadding(0, pad, 0, 0)
             text = "Tip: on Android 13+ an APK installed outside the Play Store can't turn on " +
                 "accessibility until you open App info, tap the ⋮ menu (top right) and choose " +
-                "\"Allow restricted settings\"."
+                "\"Allow restricted settings\".\n\n" +
+                "Xiaomi, OnePlus, Oppo, Realme, Vivo, Huawei and Honor phones may still close " +
+                "FocusRed in the background. In App info also turn on Autostart (if offered), " +
+                "set battery use to \"No restrictions\" / \"Unrestricted\" and lock FocusRed in " +
+                "Recent apps. On Xiaomi, also allow \"Display pop-up windows while running in the " +
+                "background\" under Other permissions."
         })
 
         dashboardTitle = TextView(this).apply {
@@ -177,9 +187,38 @@ class MainActivity : AppCompatActivity() {
             ) == PackageManager.PERMISSION_GRANTED
             lines.add("${mark(granted)} Notifications")
         }
+        lines.add("${mark(isIgnoringBatteryOptimizations())} Battery optimization off")
         statusText.text = lines.joinToString("\n") +
             "\n\nWhen all are ✅, open Instagram, TikTok, YouTube, X, Reddit, Facebook or Threads " +
             "and the red timer appears."
+    }
+
+    private fun isIgnoringBatteryOptimizations(): Boolean =
+        (getSystemService(POWER_SERVICE) as PowerManager).isIgnoringBatteryOptimizations(packageName)
+
+    /**
+     * Asks to exempt FocusRed from battery optimization, so the system (and the stricter
+     * battery managers of some phone brands) doesn't stop the timer in the background.
+     */
+    private fun requestBatteryExemption() {
+        if (isIgnoringBatteryOptimizations()) {
+            startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
+            return
+        }
+        val direct = Intent(
+            Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
+            Uri.parse("package:$packageName")
+        )
+        // Some phones don't offer the direct prompt; fall back to the full list.
+        val intent = direct.takeIf { it.resolveActivity(packageManager) != null }
+            ?: Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
+        try {
+            startActivity(intent)
+        } catch (e: android.content.ActivityNotFoundException) {
+            startActivity(
+                Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$packageName"))
+            )
+        }
     }
 
     private fun hasUsageAccess(): Boolean {
