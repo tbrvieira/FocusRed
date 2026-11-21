@@ -367,6 +367,8 @@ class OverlayService : Service() {
         }
 
         val view = LayoutInflater.from(this).inflate(R.layout.layout_floating_timer, null)
+        view.findViewById<View>(R.id.card).background = FloatingCardDrawable(this, 16f)
+        view.findViewById<View>(R.id.pill).background = FloatingCardDrawable(this, 20f)
         overlayView = view
         setupDragTouchListener(view)
         setupControls(view)

@@ -1,18 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Strong Red Semi-Transparent Floating Timer Layout.
-     The whole overlay pulses (OverlayService animates its alpha). -->
+     The whole overlay pulses (OverlayService animates its alpha). The card and pill
+     backgrounds are FloatingCardDrawable (set in OverlayService), whose shadow needs
+     5dp of extra padding on the start/top and 15dp on the end/bottom. -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="wrap_content"
     android:layout_height="wrap_content">
 
     <LinearLayout
         android:id="@+id/card"
-        android:layout_width="300dp"
+        android:layout_width="320dp"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:background="@drawable/bg_floating_timer_red"
-        android:paddingHorizontal="12dp"
-        android:paddingVertical="8dp">
+        android:paddingStart="17dp"
+        android:paddingEnd="27dp"
+        android:paddingTop="13dp"
+        android:paddingBottom="23dp">
 
         <!-- Header: drag handle, app name, over-limit badge and actions -->
         <LinearLayout
@@ -343,10 +346,11 @@
         android:id="@+id/pill"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:background="@drawable/bg_floating_pill"
         android:orientation="vertical"
-        android:paddingHorizontal="12dp"
-        android:paddingVertical="6dp"
+        android:paddingStart="17dp"
+        android:paddingEnd="27dp"
+        android:paddingTop="11dp"
+        android:paddingBottom="21dp"
         android:visibility="gone">
 
         <LinearLayout
