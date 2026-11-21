@@ -1,7 +1,7 @@
 # FocusRed - Social Media Timer for Android
 This app runs a floating semi-transparent red timer over social media apps showing, in yellow, the clock, the current session time and today's cumulative usage. Minimized, it still shows the clock and session time.
 
-It was built and tested on a Galaxy S21 Ultra, but uses only standard Android features, so it should work on other Android 14+ phones (Pixel, Motorola, Xiaomi, OnePlus, etc.). Tracked apps: Instagram (and Instagram Lite), TikTok (including the Asian build and TikTok Lite), YouTube, X, Reddit, Facebook (and Facebook Lite) and Threads. Time in a Lite or regional version counts toward the main app.
+It was built and tested on a Galaxy S21 Ultra, but uses only standard Android features, so it should work on other Android 14+ phones (Pixel, Motorola, Xiaomi, OnePlus, etc.). Tracked apps: Instagram (and Instagram Lite), TikTok (including the Asian build and TikTok Lite), YouTube, X, Reddit, Facebook (and Facebook Lite), Threads and the game Whiteout Survival. Time in a Lite or regional version counts toward the main app.
 
 ## Install
 1. Open the project in Android Studio (Hedgehog or newer).

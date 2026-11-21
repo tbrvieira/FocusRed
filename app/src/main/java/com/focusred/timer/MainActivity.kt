@@ -189,8 +189,8 @@ class MainActivity : AppCompatActivity() {
         }
         lines.add("${mark(isIgnoringBatteryOptimizations())} Battery optimization off")
         statusText.text = lines.joinToString("\n") +
-            "\n\nWhen all are ✅, open Instagram, TikTok, YouTube, X, Reddit, Facebook or Threads " +
-            "and the red timer appears."
+            "\n\nWhen all are ✅, open Instagram, TikTok, YouTube, X, Reddit, Facebook, Threads " +
+            "or Whiteout Survival and the red timer appears."
     }
 
     private fun isIgnoringBatteryOptimizations(): Boolean =

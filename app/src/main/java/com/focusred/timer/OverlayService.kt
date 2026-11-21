@@ -240,7 +240,7 @@ class OverlayService : Service() {
         loadTimerSettings()
         showOverlay()
         overlayView?.findViewById<TextView>(R.id.tv_app_name)?.text =
-            SocialApps.label(pkg).uppercase(Locale.ROOT)
+            SocialApps.shortLabel(pkg).uppercase(Locale.ROOT)
         updateTimerDisplay()
     }
 

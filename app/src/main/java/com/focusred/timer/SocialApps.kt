@@ -5,16 +5,18 @@ import android.graphics.Color
 /**
  * A tracked app. [packageName] is the key for its limits, stats and pauses;
  * [variants] are other packages of the same app (regional builds, Lite versions)
- * whose time counts as this app's.
+ * whose time counts as this app's. [shortLabel] is the name on the floating card's
+ * header, which has room for about 10 characters next to the "Over Limit" badge.
  */
 data class SocialApp(
     val packageName: String,
     val label: String,
     val color: Int,
-    val variants: Set<String> = emptySet()
+    val variants: Set<String> = emptySet(),
+    val shortLabel: String = label
 )
 
-/** The social media apps FocusRed tracks, in display order. */
+/** The social media apps (and the game Whiteout Survival) FocusRed tracks, in display order. */
 object SocialApps {
 
     val all = listOf(
@@ -37,7 +39,11 @@ object SocialApps {
             "com.facebook.katana", "Facebook", Color.parseColor("#1877F2"),
             setOf("com.facebook.lite")
         ),
-        SocialApp("com.instagram.barcelona", "Threads", Color.parseColor("#737373"))
+        SocialApp("com.instagram.barcelona", "Threads", Color.parseColor("#737373")),
+        SocialApp(
+            "com.gof.global", "Whiteout Survival", Color.parseColor("#6FB7E8"),
+            shortLabel = "Whiteout"
+        )
     )
 
     /** The main package of every tracked app (the keys used everywhere). */
@@ -53,6 +59,7 @@ object SocialApps {
     /** The main package for [packageName] (itself for a main package), or null if untracked. */
     fun canonical(packageName: String): String? = byAnyPackage[packageName]
 
-    fun label(packageName: String): String =
-        all.find { it.packageName == canonical(packageName) }?.label ?: "Social"
+    /** The floating card's header name for [packageName]. */
+    fun shortLabel(packageName: String): String =
+        all.find { it.packageName == canonical(packageName) }?.shortLabel ?: "Social"
 }
